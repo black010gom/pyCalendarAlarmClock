@@ -194,8 +194,11 @@ class Tooltip:
                 pass
             self.tw = None
 
+import AlarmMusicPlayerFile as music_player  # 추가된 코드
+
 class AddAlarmDialog(simpledialog.Dialog):
     def __init__(self, parent, prefill_date=None):
+        self.music_file = None  # 음악 파일 경로 초기화
         self.prefill_date = prefill_date
         super().__init__(parent, title="알람 추가")
 
@@ -246,6 +249,11 @@ class AddAlarmDialog(simpledialog.Dialog):
         self.period_end.grid(row=8, column=1, sticky="ew")
         Tooltip(self.period_end, "알람이 유효한 기간의 종료 시각 입력(예: 2025-11-15 18:00:00)")
 
+        # 음악 파일 선택 버튼 추가
+        ttk.Button(master, text="음악 파일 선택", command=self.select_music_file).grid(row=9, column=0, columnspan=2, sticky="ew")
+        self.music_label = ttk.Label(master, text="선택된 음악 파일 없음")
+        self.music_label.grid(row=10, column=0, columnspan=2, sticky="ew")
+
         # prefill 날짜 보조
         if self.prefill_date:
             y, m, d = self.prefill_date
@@ -253,6 +261,11 @@ class AddAlarmDialog(simpledialog.Dialog):
             self.period_end.insert(0, f"{y:04d}-{m:02d}-{d:02d} 21:00:00")
 
         return self.name
+
+    def select_music_file(self):
+        self.music_file = music_player.select_music_file()
+        if self.music_file:
+            self.music_label.config(text=os.path.basename(self.music_file))
 
     def validate(self):
         # interval_offsets 검증 및 파싱 ('&'와 ',' 허용), 최대 5개
@@ -353,6 +366,7 @@ class AddAlarmDialog(simpledialog.Dialog):
             if cnt > 0:
                 alarm["times"] = self._generate_times_for_count(cnt)
 
+        alarm["music_file"] = self.music_file  # 선택된 음악 파일 경로 저장
         self.result = alarm
 
 class AlarmApp:
@@ -534,6 +548,9 @@ class AlarmApp:
             beep_alert()
         except Exception:
             logging.exception("비프 실패")
+        music_file = alarm.get("music_file")
+        if music_file:
+            music_player.play_music(music_file)  # 음악 재생
 
 if __name__ == "__main__":
     ensure_data_file()
